@@ -10,7 +10,15 @@ const nextConfig = {
     ];
   },
   images: {
-    domains: ['media.licdn.com'],
+    domains: ['media.licdn.com', 'localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/uploads/**',
+      },
+    ],
   },
 };
 

@@ -19,6 +19,7 @@ import {
   Skeleton,
   Divider,
   useToast,
+  Image,
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
@@ -35,7 +36,7 @@ import {
   FiClock,
   FiTrendingUp,
 } from 'react-icons/fi';
-import { contentApi, jobsApi } from '@/lib/api';
+import { contentApi, jobsApi, normalizeImageUrl } from '@/lib/api';
 
 const statusColors: Record<string, string> = {
   DRAFT: 'gray',
@@ -249,15 +250,15 @@ export default function ContentDetailPage() {
                   <Text fontWeight="500">
                     {content.schedule.status === 'COMPLETED'
                       ? `Publicado em ${format(
-                          new Date(content.schedule.publishedAt!),
-                          "d 'de' MMMM 'às' HH:mm",
-                          { locale: ptBR }
-                        )}`
+                        new Date(content.schedule.publishedAt!),
+                        "d 'de' MMMM 'às' HH:mm",
+                        { locale: ptBR }
+                      )}`
                       : `Agendado para ${format(
-                          new Date(content.schedule.scheduledAt),
-                          "d 'de' MMMM 'às' HH:mm",
-                          { locale: ptBR }
-                        )}`}
+                        new Date(content.schedule.scheduledAt),
+                        "d 'de' MMMM 'às' HH:mm",
+                        { locale: ptBR }
+                      )}`}
                   </Text>
                 </HStack>
                 {content.analytics?.postId && (
@@ -351,6 +352,23 @@ export default function ContentDetailPage() {
 
               <TabPanels>
                 <TabPanel p={6}>
+                  {content.imageUrl && (
+                    <Box
+                      mb={4}
+                      borderRadius="xl"
+                      overflow="hidden"
+                      border="1px solid"
+                      borderColor="surface.700"
+                    >
+                      <Image
+                        src={normalizeImageUrl(content.imageUrl) || ''}
+                        alt="Post image"
+                        w="full"
+                        maxH="400px"
+                        objectFit="cover"
+                      />
+                    </Box>
+                  )}
                   {content.finalContent ? (
                     <Box
                       p={6}
@@ -417,10 +435,10 @@ export default function ContentDetailPage() {
                               job.status === 'COMPLETED'
                                 ? 'green'
                                 : job.status === 'FAILED'
-                                ? 'red'
-                                : job.status === 'PROCESSING'
-                                ? 'yellow'
-                                : 'gray'
+                                  ? 'red'
+                                  : job.status === 'PROCESSING'
+                                    ? 'yellow'
+                                    : 'gray'
                             }
                           >
                             {job.status}

@@ -26,6 +26,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FiZap, FiArrowLeft, FiEdit3, FiCheck, FiRefreshCw } from 'react-icons/fi';
 import { contentApi, jobsApi, type Content } from '@/lib/api';
+import ImageGenerator from '@/components/ImageGenerator';
+import ImageUpload from '@/components/ImageUpload';
 
 interface FormData {
   theme: string;
@@ -304,6 +306,48 @@ export default function NewContentPage() {
                     <Text whiteSpace="pre-wrap" lineHeight="1.8">
                       {generatedContent.finalContent}
                     </Text>
+                  </Box>
+                )}
+
+                {/* Image Options */}
+                {contentId && generatedContent && (
+                  <Box
+                    p={6}
+                    bg="surface.800"
+                    borderRadius="xl"
+                    border="1px solid"
+                    borderColor="surface.700"
+                  >
+                    <VStack spacing={6} align="stretch">
+                      <ImageGenerator
+                        contentId={contentId}
+                        theme={watch('theme')}
+                        persona={watch('persona')}
+                        currentImageUrl={generatedContent.imageUrl || undefined}
+                        onImageGenerated={(imageUrl) => {
+                          setGeneratedContent({
+                            ...generatedContent,
+                            imageUrl,
+                          });
+                        }}
+                      />
+                      
+                      <Box>
+                        <Text fontSize="sm" color="gray.400" mb={3} textAlign="center">
+                          ou
+                        </Text>
+                        <ImageUpload
+                          contentId={contentId}
+                          currentImageUrl={generatedContent.imageUrl || undefined}
+                          onImageUploaded={(imageUrl) => {
+                            setGeneratedContent({
+                              ...generatedContent,
+                              imageUrl,
+                            });
+                          }}
+                        />
+                      </Box>
+                    </VStack>
                   </Box>
                 )}
 

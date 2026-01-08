@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import React from 'react';
 import {
   Box,
   Flex,
@@ -16,6 +17,7 @@ import {
   MenuItem,
   Divider,
   Tooltip,
+  Spinner,
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -49,13 +51,40 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, token, setUser, logout } = useAuthStore();
+  const { user, isAuthenticated, token, refreshToken, setUser, setTokens, logout } = useAuthStore();
+  const [isHydrated, setIsHydrated] = React.useState(false);
+
+  // Wait for Zustand to rehydrate
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Try to refresh token if access token is missing but refresh token exists
+  const { data: refreshData, isError: refreshError } = useQuery({
+    queryKey: ['refresh-token'],
+    queryFn: async () => {
+      if (!refreshToken) throw new Error('No refresh token');
+      const response = await authApi.refreshToken(refreshToken);
+      return response.data;
+    },
+    enabled: isHydrated && !token && !!refreshToken,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (refreshData) {
+      setTokens(refreshData.accessToken, refreshData.refreshToken);
+      if (refreshData.user) {
+        setUser(refreshData.user);
+      }
+    }
+  }, [refreshData, setTokens, setUser]);
 
   // Fetch user profile if token exists but user is missing
-  const { data: profileData } = useQuery({
+  const { data: profileData, isError: profileError } = useQuery({
     queryKey: ['profile'],
     queryFn: () => authApi.getProfile().then((res) => res.data),
-    enabled: !!token && !user,
+    enabled: isHydrated && !!token && !user,
     retry: false,
   });
 
@@ -65,18 +94,77 @@ export default function DashboardLayout({
     }
   }, [profileData, user, setUser]);
 
+  // Redirect to login only if no tokens and refresh failed
   useEffect(() => {
-    if (!isAuthenticated && !token) {
+    if (!isHydrated) return; // Wait for hydration
+
+    const hasTokens = !!token || !!refreshToken;
+    const isRefreshing = !token && !!refreshToken && !refreshError && !refreshData;
+    
+    // Don't redirect if we're still trying to refresh
+    if (isRefreshing) return;
+    
+    // Only redirect if we have no tokens at all
+    if (!hasTokens) {
+      router.push('/login');
+    } else if (refreshError && !token) {
+      // Refresh failed and no access token, logout
+      logout();
       router.push('/login');
     }
-  }, [isAuthenticated, token, router]);
+  }, [isHydrated, token, refreshToken, refreshError, refreshData, router, logout]);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      if (refreshToken) {
+        await authApi.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      logout();
+      router.push('/');
+    }
   };
 
-  if (!isAuthenticated) {
+  // Show loading while hydrating or refreshing
+  if (!isHydrated) {
+    return (
+      <Box
+        minH="100vh"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        bg="surface.950"
+      >
+        <VStack spacing={4}>
+          <Spinner size="xl" color="linkedin.500" thickness="4px" />
+          <Text color="gray.400">Carregando...</Text>
+        </VStack>
+      </Box>
+    );
+  }
+
+  // Show loading while refreshing token
+  if (!token && !!refreshToken && !refreshError && !refreshData) {
+    return (
+      <Box
+        minH="100vh"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        bg="surface.950"
+      >
+        <VStack spacing={4}>
+          <Spinner size="xl" color="linkedin.500" thickness="4px" />
+          <Text color="gray.400">Restaurando sessão...</Text>
+        </VStack>
+      </Box>
+    );
+  }
+
+  // Don't render if no authentication (will redirect)
+  if (!token && !refreshToken) {
     return null;
   }
 

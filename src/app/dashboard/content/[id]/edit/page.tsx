@@ -19,6 +19,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FiArrowLeft, FiSave, FiCalendar } from 'react-icons/fi';
 import { contentApi } from '@/lib/api';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function EditContentPage() {
   const params = useParams();
@@ -94,6 +95,23 @@ export default function EditContentPage() {
             </HStack>
             <Text color="gray.400">{content?.theme}</Text>
           </VStack>
+
+          {/* Image Upload */}
+          <Box
+            p={6}
+            bg="surface.900"
+            borderRadius="2xl"
+            border="1px solid"
+            borderColor="surface.800"
+          >
+            <ImageUpload
+              contentId={id}
+              currentImageUrl={content?.imageUrl || undefined}
+              onImageUploaded={(imageUrl) => {
+                queryClient.invalidateQueries({ queryKey: ['content', id] });
+              }}
+            />
+          </Box>
 
           <Box
             p={6}

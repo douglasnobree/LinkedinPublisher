@@ -14,6 +14,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       const token = searchParams.get('token');
+      const refreshToken = searchParams.get('refreshToken');
 
       if (!token) {
         router.push('/login?error=no_token');
@@ -22,13 +23,13 @@ export default function AuthCallbackPage() {
 
       try {
         // Store token temporarily
-        useAuthStore.setState({ token });
+        useAuthStore.setState({ token, refreshToken: refreshToken || null });
 
         // Fetch user profile
         const { data: user } = await authApi.getProfile();
 
-        // Set auth state
-        setAuth(token, user);
+        // Set auth state with both tokens
+        setAuth(token, refreshToken || '', user);
 
         // Redirect to dashboard
         router.push('/dashboard');
